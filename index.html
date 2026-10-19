@@ -3,32 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tarot: tarik kartu harian, spread 3 kartu, atau Celtic Cross. Makna tegak dan terbalik dalam bahasa Indonesia.">
   <title>Tarot</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header>
-    <h1>Tarot</h1>
-    <p class="subtitle">Tarik kartu, baca maknanya.</p>
+  <div class="starfield" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="moon" aria-hidden="true">☾</span>
+      <div>
+        <h1>Tarot</h1>
+        <p class="subtitle">Tarik kartu, baca maknanya.</p>
+      </div>
+    </div>
+    <button id="btn-theme" class="icon-btn" aria-label="Ganti tema">☀</button>
   </header>
 
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-read" aria-selected="true" aria-controls="panel-read" data-tab="read">Baca</button>
+    <button role="tab" id="tab-gallery" aria-selected="false" aria-controls="panel-gallery" data-tab="gallery" tabindex="-1">Galeri</button>
+    <button role="tab" id="tab-history" aria-selected="false" aria-controls="panel-history" data-tab="history" tabindex="-1">Riwayat</button>
+  </nav>
+
   <main>
-    <div class="actions">
-      <button id="btn-daily" class="primary">Tarik 1 Kartu</button>
-      <button id="btn-spread" class="primary">Spread 3 Kartu</button>
-      <button id="btn-reshuffle">Acak Ulang</button>
-    </div>
+    <!-- ===== Baca ===== -->
+    <section id="panel-read" role="tabpanel" aria-labelledby="tab-read">
+      <div class="spread-picker" role="group" aria-label="Pilih spread">
+        <button class="spread-btn" data-spread="daily">
+          <span class="spread-title">Kartu Harian</span>
+          <span class="spread-hint">1 kartu, sama sepanjang hari</span>
+        </button>
+        <button class="spread-btn" data-spread="one">
+          <span class="spread-title">1 Kartu</span>
+          <span class="spread-hint">Jawaban cepat</span>
+        </button>
+        <button class="spread-btn" data-spread="three">
+          <span class="spread-title">3 Kartu</span>
+          <span class="spread-hint">Lalu · Kini · Nanti</span>
+        </button>
+        <button class="spread-btn" data-spread="celtic">
+          <span class="spread-title">Celtic Cross</span>
+          <span class="spread-hint">10 kartu, gambaran lengkap</span>
+        </button>
+      </div>
 
-    <section id="result" class="result" aria-live="polite"></section>
+      <div class="toolbar">
+        <button id="btn-reshuffle" class="ghost">Acak Ulang</button>
+        <span class="kbd-hint">Spasi: baca · R: acak ulang</span>
+      </div>
 
-    <section class="history-section">
+      <div id="stage" class="stage" aria-live="polite">
+        <p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>
+      </div>
+
+      <section id="reading" class="reading" hidden>
+        <ol id="reading-list" class="reading-list"></ol>
+        <div class="journal">
+          <label for="journal-note">Catatan Anda</label>
+          <textarea id="journal-note" rows="3" placeholder="Apa yang Anda rasakan saat membaca ini?"></textarea>
+          <div class="journal-actions">
+            <button id="btn-share" class="ghost">Salin Hasil</button>
+            <span id="share-status" class="status" role="status"></span>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== Galeri ===== -->
+    <section id="panel-gallery" role="tabpanel" aria-labelledby="tab-gallery" hidden>
+      <div class="gallery-controls">
+        <input id="gallery-search" type="search" placeholder="Cari nama atau makna…" aria-label="Cari kartu">
+        <div class="chips" role="group" aria-label="Filter kartu">
+          <button class="chip is-active" data-filter="all">Semua</button>
+          <button class="chip" data-filter="major">Arcana Mayor</button>
+          <button class="chip" data-filter="wands">Tongkat</button>
+          <button class="chip" data-filter="cups">Cawan</button>
+          <button class="chip" data-filter="swords">Pedang</button>
+          <button class="chip" data-filter="coins">Koin</button>
+        </div>
+      </div>
+      <p id="gallery-count" class="status"></p>
+      <div id="gallery" class="gallery"></div>
+    </section>
+
+    <!-- ===== Riwayat ===== -->
+    <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
       <div class="history-header">
-        <h2>Riwayat</h2>
-        <button id="btn-clear" class="small">Hapus Riwayat</button>
+        <h2>Riwayat Bacaan</h2>
+        <div class="history-actions">
+          <button id="btn-export" class="ghost small">Ekspor JSON</button>
+          <button id="btn-clear" class="ghost small danger">Hapus Semua</button>
+        </div>
       </div>
       <ul id="history" class="history"></ul>
     </section>
   </main>
+
+  <dialog id="card-modal" class="modal" aria-labelledby="modal-title">
+    <div class="modal-inner">
+      <button class="modal-close" aria-label="Tutup" data-close>×</button>
+      <div id="modal-body"></div>
+    </div>
+  </dialog>
 
   <script src="js/cards-data.js"></script>
   <script src="js/app.js"></script>
