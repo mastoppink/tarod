@@ -1,5 +1,5 @@
 // ======================================================
-// Tarot: logika aplikasi (frontend only, tanpa server)
+// Show Me (tarot): logika aplikasi (frontend only, tanpa server)
 // Bergantung pada `cards` dari js/cards-data.js
 // ======================================================
 
