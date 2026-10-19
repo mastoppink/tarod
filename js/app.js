@@ -694,3 +694,11 @@ makeStars();
 updateThemeIcon();
 bindEvents();
 switchTab("read");
+
+// Service worker: aplikasi bisa dibuka tanpa internet dan dipasang ke layar utama.
+// Hanya berjalan di https atau localhost, jadi dilewati saat dibuka sebagai file lokal.
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => { /* aplikasi tetap jalan tanpa cache */ });
+  });
+}
