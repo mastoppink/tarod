@@ -6,7 +6,6 @@
 const HISTORY_KEY = "tarot-history-v2";
 const LEGACY_KEY = "tarot-history";
 const THEME_KEY = "tarot-theme";
-const GUIDE_KEY = "tarot-guide-seen";
 const MAX_HISTORY = 50;
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -354,12 +353,6 @@ function revealReading(key, spread, items, question, topic) {
   $("#journal-note").value = "";
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
 
-  // Panduan cukup terlihat sekali; setelah itu disembunyikan
-  if (!localStorage.getItem(GUIDE_KEY)) {
-    try { localStorage.setItem(GUIDE_KEY, "1"); } catch { /* abaikan */ }
-    $("#guide").open = false;
-  }
-
   $$(".spread-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.spread === key));
 }
 
@@ -705,8 +698,6 @@ function bindEvents() {
 try {
   const savedTheme = localStorage.getItem(THEME_KEY);
   if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  // Pengunjung lama tidak perlu panduan terbuka terus
-  if (localStorage.getItem(GUIDE_KEY)) $("#guide").open = false;
 } catch { /* abaikan */ }
 
 makeStars();
