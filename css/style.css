@@ -506,8 +506,6 @@ button { cursor: pointer; }
   outline-offset: 1px;
 }
 
-.journal-actions { display: flex; align-items: center; gap: 12px; }
-
 .status { color: var(--muted); font-size: 0.85rem; }
 
 /* ---------- Celtic Cross ---------- */

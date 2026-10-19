@@ -123,38 +123,6 @@ function toast(msg) {
   toast.timer = setTimeout(() => el.classList.remove("show"), 1800);
 }
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    // Fallback untuk konteks tanpa Clipboard API
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    let ok = false;
-    try { ok = document.execCommand("copy"); } catch { ok = false; }
-    ta.remove();
-    return ok;
-  }
-}
-
-function buildShareText(key, items, note, question) {
-  const spread = SPREADS[key];
-  const lines = [`Tarot · ${spread ? spread.title : "Bacaan"}`];
-  if (question && question.trim()) lines.push(`Pertanyaan: ${question.trim()}`);
-  lines.push("");
-  items.forEach((item, i) => {
-    const label = spread && spread.labels[i] ? spread.labels[i] + ": " : "";
-    lines.push(`${label}${item.card.nameId} (${orientOf(item)}), ${meaningOf(item)}`);
-  });
-  if (note && note.trim()) lines.push("", "Catatan: " + note.trim());
-  return lines.join("\n");
-}
-
 // ---------- Penyimpanan (localStorage dibungkus try/catch) ----------
 
 function readJSON(key, fallback) {
@@ -403,7 +371,6 @@ function renderHistory() {
           <div class="names">${names}</div>
           ${note}
           <div class="row-actions">
-            <button class="ghost small" data-action="copy" data-id="${e.id}">Salin</button>
             <button class="ghost small danger" data-action="delete" data-id="${e.id}">Hapus</button>
           </div>
         </li>`;
@@ -495,14 +462,6 @@ function bindEvents() {
     }, 300);
   });
 
-  $("#btn-share").addEventListener("click", async () => {
-    if (!current) return;
-    const text = buildShareText(current.key, current.items, $("#journal-note").value, current.question);
-    const ok = await copyText(text);
-    $("#share-status").textContent = ok ? "Hasil disalin." : "Gagal menyalin.";
-    toast(ok ? "Hasil bacaan disalin" : "Gagal menyalin");
-  });
-
   // Tab
   const tablist = $(".tabs");
   tablist.addEventListener("click", (e) => {
@@ -537,22 +496,12 @@ function bindEvents() {
   });
 
   // Riwayat
-  $("#history").addEventListener("click", async (e) => {
-    const btn = e.target.closest("[data-action]");
+  $("#history").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action='delete']");
     if (!btn) return;
-    const id = btn.dataset.id;
-    const entry = loadHistory().find((x) => x.id === id);
-    if (!entry) return;
-
-    if (btn.dataset.action === "copy") {
-      const items = entry.cards.map((c) => ({ card: cards[c.id], reversed: c.reversed }));
-      const ok = await copyText(buildShareText(entry.spread, items, entry.note, entry.question));
-      toast(ok ? "Bacaan disalin" : "Gagal menyalin");
-    } else if (btn.dataset.action === "delete") {
-      if (!confirm("Hapus bacaan ini?")) return;
-      deleteEntry(id);
-      renderHistory();
-    }
+    if (!confirm("Hapus bacaan ini?")) return;
+    deleteEntry(btn.dataset.id);
+    renderHistory();
   });
 
   $("#btn-export").addEventListener("click", () => {
