@@ -266,6 +266,26 @@ button { cursor: pointer; }
   outline-offset: 1px;
 }
 
+.topic-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+.topic-note {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--accent-2);
+}
+
+.topic-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-2);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .q-echo {
   margin: 0 0 12px;
   font-style: italic;

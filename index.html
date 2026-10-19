@@ -33,7 +33,7 @@
       <details class="guide" id="guide" open>
         <summary>Cara pakai (baca dulu, cuma 1 menit)</summary>
         <ol class="guide-steps">
-          <li><strong>Tulis pertanyaanmu</strong> di kotak di bawah. Boleh dikosongkan, tapi lebih mudah dipahami kalau ada.</li>
+          <li><strong>Tulis pertanyaanmu</strong> dan pilih topiknya (misalnya Cinta atau Karier). Boleh dikosongkan, tapi lebih mudah dipahami kalau ada.</li>
           <li><strong>Pilih spread.</strong> Pemula bisa mulai dari <em>1 Kartu</em>.</li>
           <li><strong>Klik kartu</strong> untuk membukanya. Klik lagi untuk melihat detail kartu.</li>
           <li><strong>Baca maknanya</strong>, lalu tulis apa yang kamu rasakan di kotak <em>Catatan Anda</em>.</li>
@@ -60,6 +60,13 @@
         <label for="question">Pertanyaanmu (opsional)</label>
         <input id="question" type="text" maxlength="200"
                placeholder="Contoh: Apa yang sebaiknya saya fokuskan minggu ini?">
+        <div class="topic-picker" role="group" aria-label="Topik pertanyaan">
+          <button class="chip is-active" data-topic="umum">Umum</button>
+          <button class="chip" data-topic="cinta">Cinta & Hubungan</button>
+          <button class="chip" data-topic="karier">Karier & Uang</button>
+          <button class="chip" data-topic="keputusan">Keputusan</button>
+          <button class="chip" data-topic="kesehatan">Kesehatan & Diri</button>
+        </div>
       </div>
 
       <div class="spread-picker" role="group" aria-label="Pilih spread">
@@ -138,6 +145,7 @@
   </dialog>
 
   <script src="js/cards-data.js"></script>
+  <script src="js/topics.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

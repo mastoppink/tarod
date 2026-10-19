@@ -34,6 +34,7 @@ const SUITS = ["wands", "cups", "swords", "coins"];
 let busy = false;
 let lastSpread = null;
 let current = null; // { key, items, entryId }
+let currentTopic = "umum";
 let galleryFilter = "all";
 let gallerySearch = "";
 
@@ -164,12 +165,13 @@ function loadHistory() {
   return migrated;
 }
 
-function addHistory(key, items, question) {
+function addHistory(key, items, question, topic) {
   const entry = {
     id: uid(),
     time: new Date().toISOString(),
     spread: key,
     question: question || "",
+    topic: topic || "umum",
     note: "",
     cards: items.map((it) => ({ id: it.card.id, reversed: it.reversed })),
   };
@@ -231,16 +233,27 @@ function renderStage(items, spread) {
   });
 }
 
-function renderReading(items, spread) {
+// Kalimat konteks sesuai topik (tidak ada untuk "umum")
+function topicNoteOf(item, topic) {
+  if (!topic || topic === "umum" || !topicNotes[topic]) return "";
+  return topicNotes[topic][item.card.id][item.reversed ? 1 : 0];
+}
+
+function renderReading(items, spread, topic) {
   const list = $("#reading-list");
   list.innerHTML = items
     .map((item, i) => {
       const label = spread.labels[i] || `Kartu ${i + 1}`;
+      const note = topicNoteOf(item, topic);
+      const noteHtml = note
+        ? `<p class="topic-note"><span class="topic-tag">${escapeHtml(topicLabels[topic])}</span>${escapeHtml(note)}</p>`
+        : "";
       return `
         <li style="--d:${i * 120 + 300}ms">
           <div class="pos-label">${escapeHtml(label)}</div>
           <div class="card-name">${escapeHtml(item.card.nameId)} · ${orientOf(item)}</div>
           <p class="card-meaning">${escapeHtml(meaningOf(item))}</p>
+          ${noteHtml}
         </li>`;
     })
     .join("");
@@ -272,11 +285,12 @@ async function performReading(key) {
   await sleep(spread.count >= 10 ? 1500 : 1000);
 
   const question = $("#question").value.trim();
+  const topic = currentTopic;
   const items = spread.seeded ? [dailyDraw()] : drawCards(spread.count);
-  current = { key, items, question, entryId: addHistory(key, items, question) };
+  current = { key, items, question, topic, entryId: addHistory(key, items, question, topic) };
 
   renderStage(items, spread);
-  renderReading(items, spread);
+  renderReading(items, spread, topic);
   $("#journal-note").value = "";
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
 
@@ -299,8 +313,12 @@ function reshuffle() {
 
 // ---------- Modal detail ----------
 
-function openDetail(card, reversed = false) {
+function openDetail(card, reversed = false, topic = "umum") {
   const modal = $("#card-modal");
+  const note = topicNoteOf({ card, reversed }, topic);
+  const noteHtml = note
+    ? `<div class="lbl">Untuk ${escapeHtml(topicLabels[topic])}</div><p>${escapeHtml(note)}</p>`
+    : "";
   $("#modal-body").innerHTML = `
     <div class="detail">
       <div class="big">
@@ -314,6 +332,7 @@ function openDetail(card, reversed = false) {
         <p>${escapeHtml(card.upright)}</p>
         <div class="lbl">Makna terbalik</div>
         <p>${escapeHtml(card.reversed)}</p>
+        ${noteHtml}
       </div>
     </div>`;
   if (!modal.open) modal.showModal();
@@ -366,7 +385,7 @@ function renderHistory() {
       const note = e.note ? `<p class="note">${escapeHtml(e.note)}</p>` : "";
       return `
         <li>
-          <div class="meta"><span>${escapeHtml(date)}</span><span>${escapeHtml(spread ? spread.title : "Bacaan")}</span></div>
+          <div class="meta"><span>${escapeHtml(date)}</span><span>${escapeHtml(spread ? spread.title : "Bacaan")}${e.topic && e.topic !== "umum" ? " · " + escapeHtml(topicLabels[e.topic] || e.topic) : ""}</span></div>
           ${question}
           <div class="names">${names}</div>
           ${note}
@@ -444,13 +463,21 @@ function bindEvents() {
       return;
     }
     const item = current && current.items[Number(flip.dataset.index)];
-    if (item) openDetail(item.card, item.reversed);
+    if (item) openDetail(item.card, item.reversed, current.topic);
   });
   stage.addEventListener("keydown", (e) => {
     if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("flip")) {
       e.preventDefault();
       e.target.click();
     }
+  });
+
+  // Pilihan topik pertanyaan
+  $(".topic-picker").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    currentTopic = chip.dataset.topic;
+    $$(".topic-picker .chip").forEach((c) => c.classList.toggle("is-active", c === chip));
   });
 
   // Catatan jurnal tersimpan otomatis
