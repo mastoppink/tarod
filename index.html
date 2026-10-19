@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Tarot</h1>
+    <p class="subtitle">Tarik kartu, baca maknanya.</p>
+  </header>
+
+  <main>
+    <div class="actions">
+      <button id="btn-daily" class="primary">Tarik 1 Kartu</button>
+      <button id="btn-spread" class="primary">Spread 3 Kartu</button>
+      <button id="btn-reshuffle">Acak Ulang</button>
+    </div>
+
+    <section id="result" class="result" aria-live="polite"></section>
+
+    <section class="history-section">
+      <div class="history-header">
+        <h2>Riwayat</h2>
+        <button id="btn-clear" class="small">Hapus Riwayat</button>
+      </div>
+      <ul id="history" class="history"></ul>
+    </section>
+  </main>
+
+  <script src="js/cards-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
