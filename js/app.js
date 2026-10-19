@@ -308,7 +308,6 @@ function renderReading(items, spread, topic, question) {
 
 function setControlsDisabled(disabled) {
   $$(".spread-btn").forEach((b) => (b.disabled = disabled));
-  $("#btn-reshuffle").disabled = disabled;
 }
 
 // ---------- Aksi baca ----------
@@ -421,12 +420,6 @@ function cancelPick() {
   busy = false;
   setControlsDisabled(false);
   $("#stage").innerHTML = `<p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>`;
-}
-
-function reshuffle() {
-  // Kartu harian bersifat tetap, jadi acak ulang memakai 1 kartu biasa
-  const key = !lastSpread || lastSpread === "daily" ? "one" : lastSpread;
-  performReading(key);
 }
 
 // ---------- Modal detail ----------
@@ -569,7 +562,6 @@ function bindEvents() {
   $$(".spread-btn").forEach((btn) =>
     btn.addEventListener("click", () => performReading(btn.dataset.spread))
   );
-  $("#btn-reshuffle").addEventListener("click", reshuffle);
 
   // Buka kartu lalu ketuk lagi untuk detail
   const stage = $("#stage");
@@ -689,8 +681,6 @@ function bindEvents() {
     if (e.key === " " && e.target === document.body) {
       e.preventDefault();
       performReading(lastSpread && lastSpread !== "daily" ? lastSpread : "one");
-    } else if (e.key === "r" || e.key === "R") {
-      reshuffle();
     }
   });
 }
