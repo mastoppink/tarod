@@ -268,6 +268,38 @@ button { cursor: pointer; }
 
 .topic-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
+.verdict-wrap:empty { display: none; }
+
+.verdict {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-2);
+  background: var(--panel);
+}
+
+.verdict-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.verdict strong { font-size: 1.25rem; color: var(--accent-2); }
+
+.verdict small { color: var(--muted); line-height: 1.4; }
+
+.more summary {
+  cursor: pointer;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.more .card-meaning { margin-top: 6px; }
+
 .topic-note {
   margin: 8px 0 0;
   font-size: 0.9rem;
@@ -463,18 +495,160 @@ button { cursor: pointer; }
   border: 1px solid var(--border);
   background: linear-gradient(160deg, var(--card-back), var(--panel-solid));
   box-shadow: var(--shadow);
-  animation: shuffle 0.9s ease-in-out infinite;
+  animation: riffleLeft 1s ease-in-out infinite;
 }
+
+/* Setiap pasangan tumpukan bergerak berlawanan, seperti kocokan riffle */
+.deck .card-shadow:nth-child(even) { animation-name: riffleRight; }
 
 .deck .card-shadow:nth-child(2) { animation-delay: 0.12s; }
 .deck .card-shadow:nth-child(3) { animation-delay: 0.24s; }
 .deck .card-shadow:nth-child(4) { animation-delay: 0.36s; }
 
-@keyframes shuffle {
+@keyframes riffleLeft {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-22px, -6px) rotate(-6deg); }
-  50% { transform: translate(0, 0) rotate(0deg); }
-  75% { transform: translate(22px, -6px) rotate(6deg); }
+  35% { transform: translate(-30px, -10px) rotate(-7deg); }
+  55% { transform: translate(-4px, 0) rotate(-1deg); }
+  75% { transform: translate(-18px, -4px) rotate(-4deg); }
+}
+
+@keyframes riffleRight {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  35% { transform: translate(30px, -10px) rotate(7deg); }
+  55% { transform: translate(4px, 0) rotate(1deg); }
+  75% { transform: translate(18px, -4px) rotate(4deg); }
+}
+
+/* ---------- Pilih kartu dari kipas ---------- */
+.pick-wrap {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 16px 0 8px;
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse at 50% 0%, rgba(201, 161, 255, 0.16), transparent 70%);
+}
+
+.pick-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.pick-dots { display: flex; gap: 8px; }
+
+.pick-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  transition: background 0.3s, transform 0.3s var(--ease);
+}
+
+.pick-dot.filled {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  transform: scale(1.2);
+}
+
+.pick-hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+.fan {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  padding: 30px 24px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-strong) transparent;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  -webkit-overflow-scrolling: touch;
+}
+
+.fan-card {
+  flex: 0 0 auto;
+  width: 72px;
+  height: calc(72px * 1.62);
+  margin-left: -46px;
+  padding: 0;
+  border: 0;
+  background: none;
+  position: relative;
+  border-radius: 10px;
+  transition: transform 0.3s var(--ease), filter 0.3s;
+  animation: fanIn 0.55s var(--ease) backwards;
+  animation-delay: calc(var(--i) * 10ms);
+}
+
+.fan-card:first-child { margin-left: 0; }
+
+.fan-card:hover:not(:disabled) {
+  transform: translateY(-14px);
+  filter: drop-shadow(0 8px 14px rgba(201, 161, 255, 0.35));
+}
+
+.fan-card:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+.fan-card:disabled { cursor: default; }
+
+.fan-card.picked {
+  transform: translateY(-26px);
+  filter: drop-shadow(0 10px 18px rgba(242, 200, 121, 0.45));
+}
+
+.fan-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  outline: 1px solid rgba(242, 200, 121, 0.55);
+  outline-offset: -5px;
+  /* Punggung kartu gelap agar kontras di tema terang maupun gelap */
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(242, 200, 121, 0.35) 34% 36%, transparent 36%),
+    repeating-linear-gradient(45deg, rgba(242, 200, 121, 0.09) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #4a3577, #1c1433);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f2c879;
+  font-size: 1.25rem;
+}
+
+.fan-face::after { content: "✦"; }
+
+.fan-card.picked .fan-face {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 2px var(--accent-2), var(--shadow);
+}
+
+/* Nomor urut kartu yang sudah dipilih */
+.pick-num {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  color: #1a1426;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: transform 0.3s var(--ease), opacity 0.3s;
+}
+
+.fan-card.picked .pick-num { opacity: 1; transform: scale(1); }
+
+@keyframes fanIn {
+  from { opacity: 0; transform: translateY(26px) scale(0.9); }
+  to { opacity: 1; transform: none; }
 }
 
 /* ---------- Hasil bacaan ---------- */
@@ -744,6 +918,29 @@ button { cursor: pointer; }
 @media (max-width: 380px) {
   :root { --cw: 112px; }
   h1 { font-size: 1.6rem; }
+}
+
+/* ---------- Khusus HP (lebar sampai 600px) ---------- */
+@media (max-width: 600px) {
+  /* 16px mencegah iPhone memperbesar halaman saat kolom diketuk */
+  input, textarea, select { font-size: 16px; }
+
+  /* Target sentuh minimal ~40-44px */
+  .tabs button { min-height: 44px; }
+  .chip { min-height: 40px; padding: 8px 14px; font-size: 0.9rem; }
+  .ghost, .small { min-height: 40px; display: inline-flex; align-items: center; }
+  .icon-btn { width: 46px; height: 46px; }
+
+  .spread-btn { padding: 14px 12px; }
+
+  /* Kipas lebih besar supaya kartu mudah dilihat dan diketuk */
+  .fan { padding: 34px 20px 26px; }
+  .fan-card { width: 84px; height: calc(84px * 1.62); margin-left: -52px; }
+  .pick-title { font-size: 1.1rem; }
+
+  .stage { gap: 22px 12px; }
+  .reading-list li { padding: 14px; }
+  .gallery { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
 }
 
 /* ---------- Gerak dikurangi ---------- */

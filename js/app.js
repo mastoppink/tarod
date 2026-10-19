@@ -35,6 +35,7 @@ let busy = false;
 let lastSpread = null;
 let current = null; // { key, items, entryId }
 let currentTopic = "umum";
+let pick = null;      // state saat memilih kartu: { key, spread, deck, need, picked, question, topic }
 let galleryFilter = "all";
 let gallerySearch = "";
 
@@ -48,18 +49,32 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;");
 }
 
+// Angka acak yang adil dan sulit ditebak (crypto); cadangan ke Math.random
+function randomInt(max) {
+  if (!window.crypto || !crypto.getRandomValues) return Math.floor(Math.random() * max);
+  const range = 0x100000000;
+  const limit = range - (range % max); // buang angka di atas batas agar tidak bias
+  const buf = new Uint32Array(1);
+  let x;
+  do {
+    crypto.getRandomValues(buf);
+    x = buf[0];
+  } while (x >= limit);
+  return x % max;
+}
+
 // Fisher-Yates shuffle
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = randomInt(i + 1);
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
 function drawCards(n) {
-  return shuffle(cards).slice(0, n).map((card) => ({ card, reversed: Math.random() < 0.5 }));
+  return shuffle(cards).slice(0, n).map((card) => ({ card, reversed: randomInt(2) === 1 }));
 }
 
 // PRNG deterministik (mulberry32) agar Kartu Harian sama sepanjang hari
@@ -239,8 +254,39 @@ function topicNoteOf(item, topic) {
   return topicNotes[topic][item.card.id][item.reversed ? 1 : 0];
 }
 
-function renderReading(items, spread, topic) {
+// ---------- Jawaban ya/tidak ----------
+
+const YES_NO_RE = /^\s*(apakah|akankah|haruskah|bolehkah|benarkah|apa\s+dia)\b/i;
+
+function isYesNoQuestion(question) {
+  return YES_NO_RE.test(question || "");
+}
+
+// Jawaban singkat dari polaritas kartu; kartu terbalik membalik "pos" dan "neg"
+function verdictOf(items) {
+  const score = items.reduce((sum, item) => {
+    let p = cardPolarity[item.card.id];
+    if (item.reversed) p = p === "pos" ? "neg" : p === "neg" ? "pos" : p;
+    return sum + (p === "pos" ? 1 : p === "neg" ? -1 : 0);
+  }, 0);
+  if (score > 0) return "Cenderung ya";
+  if (score < 0) return "Cenderung tidak";
+  return "Belum jelas";
+}
+
+function renderReading(items, spread, topic, question) {
   const list = $("#reading-list");
+  const yesNo = isYesNoQuestion(question);
+  const resolved = yesNo ? "singkat" : "lengkap";
+
+  $("#verdict").innerHTML = yesNo
+    ? `<div class="verdict">
+         <span class="verdict-label">Jawaban singkat</span>
+         <strong>${escapeHtml(verdictOf(items))}</strong>
+         <small>Ini cara membaca kartu, bukan kepastian. Keputusan tetap ada di tanganmu.</small>
+       </div>`
+    : "";
+
   list.innerHTML = items
     .map((item, i) => {
       const label = spread.labels[i] || `Kartu ${i + 1}`;
@@ -252,8 +298,9 @@ function renderReading(items, spread, topic) {
         <li style="--d:${i * 120 + 300}ms">
           <div class="pos-label">${escapeHtml(label)}</div>
           <div class="card-name">${escapeHtml(item.card.nameId)} · ${orientOf(item)}</div>
-          <p class="card-meaning">${escapeHtml(meaningOf(item))}</p>
-          ${noteHtml}
+          ${resolved === "singkat"
+            ? `<details class="more"><summary>Lihat penjelasan</summary><p class="card-meaning">${escapeHtml(meaningOf(item))}</p>${noteHtml}</details>`
+            : `<p class="card-meaning">${escapeHtml(meaningOf(item))}</p>${noteHtml}`}
         </li>`;
     })
     .join("");
@@ -284,13 +331,26 @@ async function performReading(key) {
 
   await sleep(spread.count >= 10 ? 1500 : 1000);
 
+  // Pengguna memilih kartunya sendiri dari kipas; Kartu Harian tetap otomatis
+  if (!spread.seeded) {
+    startPick(key, spread);
+    return; // busy tetap true sampai semua kartu dipilih atau dibatalkan
+  }
+
   const question = $("#question").value.trim();
   const topic = currentTopic;
   const items = spread.seeded ? [dailyDraw()] : drawCards(spread.count);
+  revealReading(key, spread, items, question, topic);
+  busy = false;
+  setControlsDisabled(false);
+}
+
+// Menampilkan hasil bacaan dan menyimpannya ke riwayat
+function revealReading(key, spread, items, question, topic) {
   current = { key, items, question, topic, entryId: addHistory(key, items, question, topic) };
 
   renderStage(items, spread);
-  renderReading(items, spread, topic);
+  renderReading(items, spread, topic, question);
   $("#journal-note").value = "";
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
 
@@ -301,8 +361,73 @@ async function performReading(key) {
   }
 
   $$(".spread-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.spread === key));
+}
+
+// ---------- Pilih kartu sendiri ----------
+
+function startPick(key, spread) {
+  // Dek diacak dulu; kartu yang dipilih baru diketahui saat dibuka
+  pick = {
+    key,
+    spread,
+    deck: shuffle(cards),
+    need: spread.count,
+    picked: [],
+    question: $("#question").value.trim(),
+    topic: currentTopic,
+  };
+
+  const dots = Array.from({ length: spread.count }, () => `<span class="pick-dot"></span>`).join("");
+  $("#stage").innerHTML = `
+    <div class="pick-wrap">
+      <p class="pick-title">Ketuk kartu yang kamu rasakan</p>
+      <div class="pick-dots" aria-hidden="true">${dots}</div>
+      <p class="pick-hint"><span id="pick-count">0</span> dari ${spread.count} kartu dipilih</p>
+      <div class="fan" role="group" aria-label="Kipas kartu tertutup">
+        ${pick.deck
+          .map((_, i) => `
+            <button class="fan-card" style="--i:${Math.min(i, 40)}" data-i="${i}" aria-label="Kartu tertutup ${i + 1}">
+              <span class="fan-face"></span><span class="pick-num"></span>
+            </button>`)
+          .join("")}
+      </div>
+      <button id="btn-pick-cancel" class="ghost small">Batal</button>
+    </div>`;
+
+  // Mulai dari tengah kipas supaya kartu di sekitarnya terlihat
+  const fan = $(".fan");
+  requestAnimationFrame(() => {
+    fan.scrollLeft = (fan.scrollWidth - fan.clientWidth) / 2;
+  });
+}
+
+function pickCard(el) {
+  if (!pick || el.disabled) return;
+  pick.picked.push(pick.deck[Number(el.dataset.i)]);
+  const order = pick.picked.length;
+  el.disabled = true;
+  el.classList.add("picked");
+  el.querySelector(".pick-num").textContent = order;
+  $$(".pick-dot")[order - 1].classList.add("filled");
+  $("#pick-count").textContent = order;
+  if (pick.picked.length === pick.need) finishPick();
+}
+
+function finishPick() {
+  const { key, spread, picked, question, topic } = pick;
+  pick = null;
+  // Posisi tegak atau terbalik tetap acak
+  const items = picked.map((card) => ({ card, reversed: randomInt(2) === 1 }));
+  revealReading(key, spread, items, question, topic);
   busy = false;
   setControlsDisabled(false);
+}
+
+function cancelPick() {
+  pick = null;
+  busy = false;
+  setControlsDisabled(false);
+  $("#stage").innerHTML = `<p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>`;
 }
 
 function reshuffle() {
@@ -456,6 +581,10 @@ function bindEvents() {
   // Buka kartu lalu ketuk lagi untuk detail
   const stage = $("#stage");
   stage.addEventListener("click", (e) => {
+    const fanCard = e.target.closest(".fan-card");
+    if (fanCard) return pickCard(fanCard);
+    if (e.target.closest("#btn-pick-cancel")) return cancelPick();
+
     const flip = e.target.closest(".flip");
     if (!flip) return;
     if (!flip.classList.contains("is-open")) {
