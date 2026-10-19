@@ -30,6 +30,32 @@
   <main>
     <!-- ===== Baca ===== -->
     <section id="panel-read" role="tabpanel" aria-labelledby="tab-read">
+      <details class="guide" id="guide" open>
+        <summary>Cara pakai (baca dulu, cuma 1 menit)</summary>
+        <ol class="guide-steps">
+          <li><strong>Tulis pertanyaanmu</strong> di kotak di bawah. Boleh dikosongkan, tapi lebih mudah dipahami kalau ada.</li>
+          <li><strong>Pilih spread.</strong> Pemula bisa mulai dari <em>1 Kartu</em>.</li>
+          <li><strong>Klik kartu</strong> untuk membukanya. Klik lagi untuk melihat detail kartu.</li>
+          <li><strong>Baca maknanya</strong>, lalu tulis apa yang kamu rasakan di kotak <em>Catatan Anda</em>.</li>
+        </ol>
+        <div class="guide-grid">
+          <div>
+            <h3>Tegak atau terbalik?</h3>
+            <p><strong>Tegak</strong> berarti energinya mengalir dengan wajar. <strong>Terbalik</strong> berarti energinya tertahan, berlebihan, atau perlu dilihat dari sisi lain.</p>
+          </div>
+          <div>
+            <h3>Pilihan spread</h3>
+            <ul>
+              <li><strong>Kartu Harian:</strong> satu kartu untuk hari ini. Sama sepanjang hari.</li>
+              <li><strong>1 Kartu:</strong> jawaban singkat untuk satu pertanyaan.</li>
+              <li><strong>3 Kartu:</strong> kiri = yang sudah terjadi, tengah = keadaan sekarang, kanan = kemungkinan ke depan.</li>
+              <li><strong>Celtic Cross:</strong> gambaran lengkap dari 10 kartu. Cocok untuk situasi yang rumit.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="guide-note">Tarot adalah alat untuk merenung, bukan ramalan pasti. Keputusan tetap ada di tanganmu.</p>
+      </details>
+
       <div class="spread-picker" role="group" aria-label="Pilih spread">
         <button class="spread-btn" data-spread="daily">
           <span class="spread-title">Kartu Harian</span>
@@ -49,6 +75,12 @@
         </button>
       </div>
 
+      <div class="question-box">
+        <label for="question">Pertanyaanmu (opsional)</label>
+        <input id="question" type="text" maxlength="200"
+               placeholder="Contoh: Apa yang sebaiknya saya fokuskan minggu ini?">
+      </div>
+
       <div class="toolbar">
         <button id="btn-reshuffle" class="ghost">Acak Ulang</button>
         <span class="kbd-hint">Spasi: baca · R: acak ulang</span>
@@ -59,6 +91,7 @@
       </div>
 
       <section id="reading" class="reading" hidden>
+        <p id="reading-question" class="q-echo"></p>
         <ol id="reading-list" class="reading-list"></ol>
         <div class="journal">
           <label for="journal-note">Catatan Anda</label>

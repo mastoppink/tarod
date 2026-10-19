@@ -6,6 +6,7 @@
 const HISTORY_KEY = "tarot-history-v2";
 const LEGACY_KEY = "tarot-history";
 const THEME_KEY = "tarot-theme";
+const GUIDE_KEY = "tarot-guide-seen";
 const MAX_HISTORY = 50;
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -141,9 +142,11 @@ async function copyText(text) {
   }
 }
 
-function buildShareText(key, items, note) {
+function buildShareText(key, items, note, question) {
   const spread = SPREADS[key];
-  const lines = [`Tarot · ${spread ? spread.title : "Bacaan"}`, ""];
+  const lines = [`Tarot · ${spread ? spread.title : "Bacaan"}`];
+  if (question && question.trim()) lines.push(`Pertanyaan: ${question.trim()}`);
+  lines.push("");
   items.forEach((item, i) => {
     const label = spread && spread.labels[i] ? spread.labels[i] + ": " : "";
     lines.push(`${label}${item.card.nameId} (${orientOf(item)}), ${meaningOf(item)}`);
@@ -193,11 +196,12 @@ function loadHistory() {
   return migrated;
 }
 
-function addHistory(key, items) {
+function addHistory(key, items, question) {
   const entry = {
     id: uid(),
     time: new Date().toISOString(),
     spread: key,
+    question: question || "",
     note: "",
     cards: items.map((it) => ({ id: it.card.id, reversed: it.reversed })),
   };
@@ -299,12 +303,20 @@ async function performReading(key) {
 
   await sleep(spread.count >= 10 ? 1500 : 1000);
 
+  const question = $("#question").value.trim();
   const items = spread.seeded ? [dailyDraw()] : drawCards(spread.count);
-  current = { key, items, entryId: addHistory(key, items) };
+  current = { key, items, question, entryId: addHistory(key, items, question) };
 
   renderStage(items, spread);
   renderReading(items, spread);
   $("#journal-note").value = "";
+  $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
+
+  // Panduan cukup terlihat sekali; setelah itu disembunyikan
+  if (!localStorage.getItem(GUIDE_KEY)) {
+    try { localStorage.setItem(GUIDE_KEY, "1"); } catch { /* abaikan */ }
+    $("#guide").open = false;
+  }
 
   $$(".spread-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.spread === key));
   busy = false;
@@ -382,10 +394,12 @@ function renderHistory() {
       const names = e.cards
         .map((c) => `${escapeHtml(cards[c.id].nameId)} (${c.reversed ? "terbalik" : "tegak"})`)
         .join(", ");
+      const question = e.question ? `<p class="q-echo">Pertanyaan: ${escapeHtml(e.question)}</p>` : "";
       const note = e.note ? `<p class="note">${escapeHtml(e.note)}</p>` : "";
       return `
         <li>
           <div class="meta"><span>${escapeHtml(date)}</span><span>${escapeHtml(spread ? spread.title : "Bacaan")}</span></div>
+          ${question}
           <div class="names">${names}</div>
           ${note}
           <div class="row-actions">
@@ -483,7 +497,7 @@ function bindEvents() {
 
   $("#btn-share").addEventListener("click", async () => {
     if (!current) return;
-    const text = buildShareText(current.key, current.items, $("#journal-note").value);
+    const text = buildShareText(current.key, current.items, $("#journal-note").value, current.question);
     const ok = await copyText(text);
     $("#share-status").textContent = ok ? "Hasil disalin." : "Gagal menyalin.";
     toast(ok ? "Hasil bacaan disalin" : "Gagal menyalin");
@@ -532,7 +546,7 @@ function bindEvents() {
 
     if (btn.dataset.action === "copy") {
       const items = entry.cards.map((c) => ({ card: cards[c.id], reversed: c.reversed }));
-      const ok = await copyText(buildShareText(entry.spread, items, entry.note));
+      const ok = await copyText(buildShareText(entry.spread, items, entry.note, entry.question));
       toast(ok ? "Bacaan disalin" : "Gagal menyalin");
     } else if (btn.dataset.action === "delete") {
       if (!confirm("Hapus bacaan ini?")) return;
@@ -586,6 +600,8 @@ function bindEvents() {
 try {
   const savedTheme = localStorage.getItem(THEME_KEY);
   if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  // Pengunjung lama tidak perlu panduan terbuka terus
+  if (localStorage.getItem(GUIDE_KEY)) $("#guide").open = false;
 } catch { /* abaikan */ }
 
 makeStars();

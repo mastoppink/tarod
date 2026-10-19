@@ -199,6 +199,82 @@ button { cursor: pointer; }
 
 .small { padding: 6px 10px; font-size: 0.85rem; }
 
+/* ---------- Panduan ---------- */
+.guide {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.guide summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent-2);
+  list-style: none;
+}
+
+.guide summary::-webkit-details-marker { display: none; }
+
+.guide summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.2s;
+}
+
+.guide[open] summary::before { transform: rotate(90deg); }
+
+.guide-steps {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.guide-grid h3 { margin: 0 0 6px; font-size: 1rem; color: var(--accent); }
+.guide-grid p, .guide-grid ul { margin: 0; line-height: 1.55; font-size: 0.92rem; }
+.guide-grid ul { padding-left: 18px; }
+.guide-grid li { margin-bottom: 4px; }
+
+.guide-note {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.question-box { display: grid; gap: 6px; margin-bottom: 14px; }
+.question-box label { font-weight: 600; color: var(--accent); font-size: 0.95rem; }
+
+.question-box input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.question-box input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.q-echo {
+  margin: 0 0 12px;
+  font-style: italic;
+  color: var(--accent-2);
+  font-size: 0.95rem;
+}
+
+.q-echo:empty { display: none; }
+
 /* ---------- Spread picker ---------- */
 .spread-picker {
   display: grid;
@@ -642,6 +718,7 @@ button { cursor: pointer; }
   .spread-picker { grid-template-columns: repeat(2, 1fr); }
   .stage.celtic { --cw: 84px; gap: 8px; }
   .detail { grid-template-columns: 1fr; }
+  .guide-grid { grid-template-columns: 1fr; }
   .detail .big { width: 140px; margin: 0 auto; }
   .kbd-hint { display: none; }
 }
