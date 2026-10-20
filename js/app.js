@@ -297,6 +297,7 @@ function revealReading(key, spread, items, question, topic) {
 
   renderStage(items, spread);
   renderReading(items, spread, topic, question);
+  document.body.classList.add("is-reading");
   clearTimeout(resetTimer);
   resetTimer = setTimeout(resetReading, 10000);
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
@@ -308,6 +309,7 @@ function revealReading(key, spread, items, question, topic) {
 function resetReading() {
   resetTimer = null;
   current = null;
+  document.body.classList.remove("is-reading");
   $("#reading").hidden = true;
   $("#reading-question").textContent = "";
   $("#verdict").innerHTML = "";

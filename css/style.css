@@ -384,6 +384,19 @@ button { cursor: pointer; }
 
 .stage-empty { color: var(--muted); margin: 60px 0; text-align: center; width: 100%; }
 
+/* Saat kartu keluar: sembunyikan kontrol supaya kartu jadi pusat perhatian */
+body.is-reading .subtitle,
+body.is-reading .tabs,
+body.is-reading .guide,
+body.is-reading .question-box,
+body.is-reading .spread-picker,
+body.is-reading .toolbar { display: none; }
+
+body.is-reading .stage {
+  background: radial-gradient(ellipse at 50% 45%, var(--glow), transparent 68%);
+  border-radius: var(--radius);
+}
+
 /* Kartu "dibagikan" dari atas dengan sedikit kemiringan, lalu mendarat dengan sedikit pantulan */
 .slot {
   width: var(--cw);
