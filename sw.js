@@ -1,7 +1,7 @@
 // Service worker Show Me: aplikasi tetap bisa dibuka tanpa internet.
 // Ubah VERSION setiap kali file aplikasi berubah agar pengguna mendapat versi terbaru.
 
-const VERSION = "show-me-v4";
+const VERSION = "show-me-v7";
 const IMAGE_CACHE = "show-me-images-v1";
 
 const SHELL = [

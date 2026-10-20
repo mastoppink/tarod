@@ -32,7 +32,6 @@ let busy = false;
 let lastSpread = null;
 let current = null; // { key, items, question, topic }
 let currentTopic = "umum";
-let pick = null;      // state saat memilih kartu: { key, spread, deck, need, picked, question, topic }
 let resetTimer = null; // reset tampilan 10 detik setelah bacaan muncul
 let galleryFilter = "all";
 let gallerySearch = "";
@@ -118,6 +117,16 @@ function meaningOf(item) {
   return item.reversed ? item.card.reversed : item.card.upright;
 }
 
+// Kata kunci mengikuti posisi kartu (tegak atau terbalik)
+function keywordsOf(item) {
+  return item.reversed ? item.card.reversedKeywords : item.card.keywords;
+}
+
+function keywordsHtml(item) {
+  const chips = keywordsOf(item).map((k) => `<li>${escapeHtml(k)}</li>`).join("");
+  return `<ul class="kw-list" aria-label="Kata kunci">${chips}</ul>`;
+}
+
 function toast(msg) {
   let el = $("#toast");
   if (!el) {
@@ -142,10 +151,14 @@ function removeOldHistory() {
 
 // ---------- Render kartu ----------
 
+// Kemiringan kecil berbeda tiap kartu agar hasil bacaan terasa seperti kartu sungguhan
+const DEAL_TILTS = [-3, 2, -1.5, 3, -2, 1.5];
+
 function slotHtml(item, index, label, delay) {
   const { card, reversed } = item;
+  const tilt = DEAL_TILTS[index % DEAL_TILTS.length];
   return `
-    <div class="slot" style="--d:${delay}ms">
+    <div class="slot" style="--d:${delay}ms;--tilt:${tilt}deg">
       <div class="pos">${label ? escapeHtml(label) : ""}</div>
       <div class="flip ${reversed ? "reversed" : ""}" data-index="${index}" data-id="${card.id}"
            role="button" tabindex="0" aria-label="${escapeHtml(card.nameId)}, ${orientOf(item)}. Ketuk untuk membuka, ketuk lagi untuk detail.">
@@ -236,6 +249,7 @@ function renderReading(items, spread, topic, question) {
         <li style="--d:${i * 120 + 300}ms">
           <div class="pos-label">${escapeHtml(label)}</div>
           <div class="card-name">${escapeHtml(item.card.nameId)} · ${orientOf(item)}</div>
+          ${keywordsHtml(item)}
           ${resolved === "singkat"
             ? `<details class="more"><summary>Lihat penjelasan</summary><p class="card-meaning">${escapeHtml(meaningOf(item))}</p>${noteHtml}</details>`
             : `<p class="card-meaning">${escapeHtml(meaningOf(item))}</p>${noteHtml}`}
@@ -269,12 +283,6 @@ async function performReading(key) {
 
   await sleep(spread.count >= 10 ? 1500 : 1000);
 
-  // Pengguna memilih kartunya sendiri dari kipas; Kartu Harian tetap otomatis
-  if (!spread.seeded) {
-    startPick(key, spread);
-    return; // busy tetap true sampai semua kartu dipilih atau dibatalkan
-  }
-
   const question = $("#question").value.trim();
   const topic = currentTopic;
   const items = spread.seeded ? [dailyDraw()] : drawCards(spread.count);
@@ -294,73 +302,6 @@ function revealReading(key, spread, items, question, topic) {
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
 
   $$(".spread-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.spread === key));
-}
-
-// ---------- Pilih kartu sendiri ----------
-
-function startPick(key, spread) {
-  // Dek diacak dulu; kartu yang dipilih baru diketahui saat dibuka
-  pick = {
-    key,
-    spread,
-    deck: shuffle(cards),
-    need: spread.count,
-    picked: [],
-    question: $("#question").value.trim(),
-    topic: currentTopic,
-  };
-
-  const dots = Array.from({ length: spread.count }, () => `<span class="pick-dot"></span>`).join("");
-  $("#stage").innerHTML = `
-    <div class="pick-wrap">
-      <p class="pick-title">Ketuk kartu yang kamu rasakan</p>
-      <div class="pick-dots" aria-hidden="true">${dots}</div>
-      <p class="pick-hint"><span id="pick-count">0</span> dari ${spread.count} kartu dipilih</p>
-      <div class="fan" role="group" aria-label="Kipas kartu tertutup">
-        ${pick.deck
-          .map((_, i) => `
-            <button class="fan-card" style="--i:${Math.min(i, 40)}" data-i="${i}" aria-label="Kartu tertutup ${i + 1}">
-              <span class="fan-face"></span><span class="pick-num"></span>
-            </button>`)
-          .join("")}
-      </div>
-      <button id="btn-pick-cancel" class="ghost small">Batal</button>
-    </div>`;
-
-  // Mulai dari tengah kipas supaya kartu di sekitarnya terlihat
-  const fan = $(".fan");
-  requestAnimationFrame(() => {
-    fan.scrollLeft = (fan.scrollWidth - fan.clientWidth) / 2;
-  });
-}
-
-function pickCard(el) {
-  if (!pick || el.disabled) return;
-  pick.picked.push(pick.deck[Number(el.dataset.i)]);
-  const order = pick.picked.length;
-  el.disabled = true;
-  el.classList.add("picked");
-  el.querySelector(".pick-num").textContent = order;
-  $$(".pick-dot")[order - 1].classList.add("filled");
-  $("#pick-count").textContent = order;
-  if (pick.picked.length === pick.need) finishPick();
-}
-
-function finishPick() {
-  const { key, spread, picked, question, topic } = pick;
-  pick = null;
-  // Posisi tegak atau terbalik tetap acak
-  const items = picked.map((card) => ({ card, reversed: randomInt(2) === 1 }));
-  revealReading(key, spread, items, question, topic);
-  busy = false;
-  setControlsDisabled(false);
-}
-
-function cancelPick() {
-  pick = null;
-  busy = false;
-  setControlsDisabled(false);
-  $("#stage").innerHTML = `<p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>`;
 }
 
 // Kembalikan layar seperti saat pertama dibuka, 10 detik setelah bacaan muncul
@@ -395,7 +336,9 @@ function openDetail(card, reversed = false, topic = "umum") {
       </div>
       <div>
         <h3 id="modal-title">${escapeHtml(card.name)}</h3>
-        <div class="sub">${escapeHtml(card.nameId)}${reversed ? " · posisi terbalik" : ""}</div>
+        <div class="sub">${escapeHtml(card.nameId)}${card.element ? " · Unsur " + escapeHtml(card.element) : ""}${reversed ? " · posisi terbalik" : ""}</div>
+        <div class="lbl">Kata kunci</div>
+        ${keywordsHtml({ card, reversed })}
         <div class="lbl">Makna tegak</div>
         <p>${escapeHtml(card.upright)}</p>
         <div class="lbl">Makna terbalik</div>
@@ -412,7 +355,8 @@ function renderGallery() {
   const q = gallerySearch.trim().toLowerCase();
   const list = cards.filter((c) => {
     const suitOk = galleryFilter === "all" || suitOf(c) === galleryFilter;
-    const textOk = !q || [c.name, c.nameId, c.upright, c.reversed].join(" ").toLowerCase().includes(q);
+    const text = [c.name, c.nameId, c.element || "", ...c.keywords, ...c.reversedKeywords, c.upright, c.reversed];
+    const textOk = !q || text.join(" ").toLowerCase().includes(q);
     return suitOk && textOk;
   });
 
@@ -488,10 +432,6 @@ function bindEvents() {
   // Buka kartu lalu ketuk lagi untuk detail
   const stage = $("#stage");
   stage.addEventListener("click", (e) => {
-    const fanCard = e.target.closest(".fan-card");
-    if (fanCard) return pickCard(fanCard);
-    if (e.target.closest("#btn-pick-cancel")) return cancelPick();
-
     const flip = e.target.closest(".flip");
     if (!flip) return;
     if (!flip.classList.contains("is-open")) {

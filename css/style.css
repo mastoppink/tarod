@@ -384,16 +384,18 @@ button { cursor: pointer; }
 
 .stage-empty { color: var(--muted); margin: 60px 0; text-align: center; width: 100%; }
 
+/* Kartu "dibagikan" dari atas dengan sedikit kemiringan, lalu mendarat dengan sedikit pantulan */
 .slot {
   width: var(--cw);
   text-align: center;
   opacity: 0;
-  transform: translateY(18px) scale(0.96);
-  animation: slotIn 0.6s var(--ease) forwards;
+  transform: translateY(-80px) rotate(var(--tilt, 0deg)) scale(0.6);
+  animation: dealIn 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.12) forwards;
   animation-delay: var(--d, 0ms);
 }
 
-@keyframes slotIn {
+@keyframes dealIn {
+  60% { opacity: 1; }
   to { opacity: 1; transform: none; }
 }
 
@@ -411,11 +413,36 @@ button { cursor: pointer; }
   width: var(--cw);
   height: var(--ch);
   transform-style: preserve-3d;
-  transition: transform 0.9s var(--ease);
+  transition: transform 1s cubic-bezier(0.3, 1.15, 0.4, 1);
   cursor: pointer;
 }
 
 .flip.is-open { transform: rotateY(180deg); }
+
+/* Saat kartu terbuka: cahaya berdenyut sekali, lalu kilatan menyapu permukaan */
+.flip.is-open .face.front {
+  animation: revealGlow 1.4s ease-out 0.55s;
+}
+
+.flip.is-open .face.front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, var(--glow-strong) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: sheen 1.1s ease-out 0.7s forwards;
+}
+
+@keyframes revealGlow {
+  0% { box-shadow: var(--shadow); }
+  30% { box-shadow: 0 0 0 2px var(--accent-2), 0 0 30px 4px var(--glow-strong), var(--shadow); }
+  100% { box-shadow: var(--shadow); }
+}
+
+@keyframes sheen {
+  to { transform: translateX(100%); }
+}
 
 .slot:hover .flip:not(.is-open) { transform: translateY(-4px) rotateY(4deg); }
 .slot:hover .flip.is-open { transform: rotateY(180deg) translateY(-4px); }
@@ -528,138 +555,6 @@ button { cursor: pointer; }
   75% { transform: translate(18px, -4px) rotate(4deg); }
 }
 
-/* ---------- Pilih kartu dari kipas ---------- */
-.pick-wrap {
-  width: 100%;
-  display: grid;
-  gap: 12px;
-  justify-items: center;
-  padding: 16px 0 8px;
-  border-radius: var(--radius);
-  background: radial-gradient(ellipse at 50% 0%, var(--glow), transparent 70%);
-}
-
-.pick-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.pick-dots { display: flex; gap: 8px; }
-
-.pick-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid var(--accent);
-  transition: background 0.3s, transform 0.3s var(--ease);
-}
-
-.pick-dot.filled {
-  background: var(--accent-2);
-  border-color: var(--accent-2);
-  transform: scale(1.2);
-}
-
-.pick-hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
-
-.fan {
-  display: flex;
-  width: 100%;
-  overflow-x: auto;
-  padding: 30px 24px 24px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent-strong) transparent;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-  -webkit-overflow-scrolling: touch;
-}
-
-.fan-card {
-  flex: 0 0 auto;
-  width: 72px;
-  height: calc(72px * 1.62);
-  margin-left: -46px;
-  padding: 0;
-  border: 0;
-  background: none;
-  position: relative;
-  border-radius: 10px;
-  transition: transform 0.3s var(--ease), filter 0.3s;
-  animation: fanIn 0.55s var(--ease) backwards;
-  animation-delay: calc(var(--i) * 10ms);
-}
-
-.fan-card:first-child { margin-left: 0; }
-
-.fan-card:hover:not(:disabled) {
-  transform: translateY(-14px);
-  filter: drop-shadow(0 8px 14px var(--glow-strong));
-}
-
-.fan-card:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
-
-.fan-card:disabled { cursor: default; }
-
-.fan-card.picked {
-  transform: translateY(-26px);
-  filter: drop-shadow(0 10px 18px var(--glow-strong));
-}
-
-.fan-face {
-  position: absolute;
-  inset: 0;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  outline: 1px solid var(--glow-strong);
-  outline-offset: -5px;
-  /* Punggung kartu gelap agar kontras di tema terang maupun gelap */
-  background:
-    radial-gradient(circle at 50% 50%, transparent 0 34%, var(--glow-strong) 34% 36%, transparent 36%),
-    repeating-linear-gradient(45deg, var(--glow) 0 6px, transparent 6px 12px),
-    linear-gradient(160deg, #3a3a3a, #141414);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #f2f2f2;
-  font-size: 1.25rem;
-}
-
-.fan-face::after { content: "✦"; }
-
-.fan-card.picked .fan-face {
-  border-color: var(--accent-2);
-  box-shadow: 0 0 0 2px var(--accent-2), var(--shadow);
-}
-
-/* Nomor urut kartu yang sudah dipilih */
-.pick-num {
-  position: absolute;
-  top: -9px;
-  right: -9px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--text);
-  color: var(--bg);
-  font-weight: 700;
-  font-size: 0.8rem;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-  transform: scale(0.4);
-  transition: transform 0.3s var(--ease), opacity 0.3s;
-}
-
-.fan-card.picked .pick-num { opacity: 1; transform: scale(1); }
-
-@keyframes fanIn {
-  from { opacity: 0; transform: translateY(26px) scale(0.9); }
-  to { opacity: 1; transform: none; }
-}
-
 /* ---------- Hasil bacaan ---------- */
 .reading { margin-top: 26px; }
 
@@ -690,6 +585,16 @@ button { cursor: pointer; }
 
 .reading-list .card-name { font-weight: 700; margin: 2px 0 4px; }
 .reading-list .card-meaning { margin: 0; font-size: 0.92rem; line-height: 1.5; }
+
+/* Kata kunci sebagai label kecil */
+.kw-list { list-style: none; padding: 0; margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.kw-list li {
+  font-size: 0.78rem;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+}
 
 #gallery-search:focus {
   outline: 2px solid var(--accent);
@@ -900,10 +805,6 @@ button { cursor: pointer; }
 
   .spread-btn { padding: 14px 12px; }
 
-  /* Kipas lebih besar supaya kartu mudah dilihat dan diketuk */
-  .fan { padding: 34px 20px 26px; }
-  .fan-card { width: 84px; height: calc(84px * 1.62); margin-left: -52px; }
-  .pick-title { font-size: 1.1rem; }
 
   .stage { gap: 22px 12px; }
   .reading-list li { padding: 14px; }
