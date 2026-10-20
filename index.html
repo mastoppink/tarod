@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="theme-color" content="#120e1c">
+  <meta name="theme-color" content="#0d0d0d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Show Me">
   <link rel="stylesheet" href="css/style.css">
@@ -30,7 +30,6 @@
   <nav class="tabs" role="tablist">
     <button role="tab" id="tab-read" aria-selected="true" aria-controls="panel-read" data-tab="read">Baca</button>
     <button role="tab" id="tab-gallery" aria-selected="false" aria-controls="panel-gallery" data-tab="gallery" tabindex="-1">Galeri</button>
-    <button role="tab" id="tab-history" aria-selected="false" aria-controls="panel-history" data-tab="history" tabindex="-1">Riwayat</button>
   </nav>
 
   <main>
@@ -42,7 +41,7 @@
           <li><strong>Tulis pertanyaanmu</strong> dan pilih topiknya (misalnya Cinta atau Karier). Boleh dikosongkan, tapi lebih mudah dipahami kalau ada.</li>
           <li><strong>Pilih spread.</strong> Pemula bisa mulai dari <em>1 Kartu</em>.</li>
           <li><strong>Pilih kartumu</strong> dari kipas tertutup (kecuali Kartu Harian). Ketuk kartu yang kamu rasakan, lalu ketuk lagi untuk melihat detail.</li>
-          <li><strong>Baca maknanya</strong>, lalu tulis apa yang kamu rasakan di kotak <em>Catatan Anda</em>.</li>
+          <li><strong>Baca maknanya</strong> dan renungkan apa yang kamu rasakan.</li>
         </ol>
         <div class="guide-grid">
           <div>
@@ -106,10 +105,6 @@
         <p id="reading-question" class="q-echo"></p>
         <div id="verdict" class="verdict-wrap"></div>
         <ol id="reading-list" class="reading-list"></ol>
-        <div class="journal">
-          <label for="journal-note">Catatan Anda</label>
-          <textarea id="journal-note" rows="3" placeholder="Apa yang Anda rasakan saat membaca ini?"></textarea>
-        </div>
       </section>
     </section>
 
@@ -130,17 +125,6 @@
       <div id="gallery" class="gallery"></div>
     </section>
 
-    <!-- ===== Riwayat ===== -->
-    <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
-      <div class="history-header">
-        <h2>Riwayat Bacaan</h2>
-        <div class="history-actions">
-          <button id="btn-export" class="ghost small">Ekspor JSON</button>
-          <button id="btn-clear" class="ghost small danger">Hapus Semua</button>
-        </div>
-      </div>
-      <ul id="history" class="history"></ul>
-    </section>
   </main>
 
   <dialog id="card-modal" class="modal" aria-labelledby="modal-title">

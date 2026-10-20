@@ -3,10 +3,8 @@
 // Bergantung pada `cards` dari js/cards-data.js
 // ======================================================
 
-const HISTORY_KEY = "tarot-history-v2";
-const LEGACY_KEY = "tarot-history";
 const THEME_KEY = "tarot-theme";
-const MAX_HISTORY = 50;
+const OLD_HISTORY_KEYS = ["tarot-history-v2", "tarot-history"]; // sisa fitur riwayat yang lama
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, reduceMotion ? 0 : ms));
@@ -32,9 +30,10 @@ const SUITS = ["wands", "cups", "swords", "coins"];
 
 let busy = false;
 let lastSpread = null;
-let current = null; // { key, items, entryId }
+let current = null; // { key, items, question, topic }
 let currentTopic = "umum";
 let pick = null;      // state saat memilih kartu: { key, spread, deck, need, picked, question, topic }
+let resetTimer = null; // reset tampilan 10 detik setelah bacaan muncul
 let galleryFilter = "all";
 let gallerySearch = "";
 
@@ -119,10 +118,6 @@ function meaningOf(item) {
   return item.reversed ? item.card.reversed : item.card.upright;
 }
 
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
 function toast(msg) {
   let el = $("#toast");
   if (!el) {
@@ -138,67 +133,11 @@ function toast(msg) {
   toast.timer = setTimeout(() => el.classList.remove("show"), 1800);
 }
 
-// ---------- Penyimpanan (localStorage dibungkus try/catch) ----------
-
-function readJSON(key, fallback) {
+// Riwayat tidak lagi disimpan; hapus data lama yang masih tersisa di browser
+function removeOldHistory() {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJSON(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    toast("Penyimpanan browser tidak tersedia");
-  }
-}
-
-// Migrasi sekali dari format v1 (hanya nama kartu) ke format v2 (id kartu)
-function loadHistory() {
-  const stored = readJSON(HISTORY_KEY, null);
-  if (stored) return stored;
-
-  const legacy = readJSON(LEGACY_KEY, null);
-  if (!legacy || legacy.length === 0) return [];
-
-  const migrated = legacy.map((e) => ({
-    id: uid(),
-    time: e.time,
-    spread: e.mode === "spread" ? "three" : "one",
-    note: "",
-    cards: e.cards
-      .map((c) => ({ id: (cards.find((card) => card.nameId === c.name) || {}).id, reversed: c.reversed }))
-      .filter((c) => c.id !== undefined),
-  }));
-  writeJSON(HISTORY_KEY, migrated);
-  try { localStorage.removeItem(LEGACY_KEY); } catch { /* abaikan */ }
-  return migrated;
-}
-
-function addHistory(key, items, question, topic) {
-  const entry = {
-    id: uid(),
-    time: new Date().toISOString(),
-    spread: key,
-    question: question || "",
-    topic: topic || "umum",
-    note: "",
-    cards: items.map((it) => ({ id: it.card.id, reversed: it.reversed })),
-  };
-  writeJSON(HISTORY_KEY, [entry, ...loadHistory()].slice(0, MAX_HISTORY));
-  return entry.id;
-}
-
-function updateEntry(id, patch) {
-  writeJSON(HISTORY_KEY, loadHistory().map((e) => (e.id === id ? { ...e, ...patch } : e)));
-}
-
-function deleteEntry(id) {
-  writeJSON(HISTORY_KEY, loadHistory().filter((e) => e.id !== id));
+    OLD_HISTORY_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch { /* abaikan */ }
 }
 
 // ---------- Render kartu ----------
@@ -314,6 +253,7 @@ function setControlsDisabled(disabled) {
 
 async function performReading(key) {
   if (busy) return;
+  clearTimeout(resetTimer);
   const spread = SPREADS[key];
   busy = true;
   setControlsDisabled(true);
@@ -343,13 +283,14 @@ async function performReading(key) {
   setControlsDisabled(false);
 }
 
-// Menampilkan hasil bacaan dan menyimpannya ke riwayat
+// Menampilkan hasil bacaan
 function revealReading(key, spread, items, question, topic) {
-  current = { key, items, question, topic, entryId: addHistory(key, items, question, topic) };
+  current = { key, items, question, topic };
 
   renderStage(items, spread);
   renderReading(items, spread, topic, question);
-  $("#journal-note").value = "";
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(resetReading, 10000);
   $("#reading-question").textContent = question ? `Pertanyaan: ${question}` : "";
 
   $$(".spread-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.spread === key));
@@ -422,6 +363,22 @@ function cancelPick() {
   $("#stage").innerHTML = `<p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>`;
 }
 
+// Kembalikan layar seperti saat pertama dibuka, 10 detik setelah bacaan muncul
+function resetReading() {
+  resetTimer = null;
+  current = null;
+  $("#reading").hidden = true;
+  $("#reading-question").textContent = "";
+  $("#verdict").innerHTML = "";
+  $("#reading-list").innerHTML = "";
+  $("#question").value = "";
+  currentTopic = "umum";
+  $$(".topic-picker .chip").forEach((c) => c.classList.toggle("is-active", c.dataset.topic === "umum"));
+  $$(".spread-btn").forEach((b) => b.classList.remove("is-active"));
+  $("#stage").classList.remove("celtic");
+  $("#stage").innerHTML = `<p class="stage-empty">Pilih spread di atas untuk mulai membaca.</p>`;
+}
+
 // ---------- Modal detail ----------
 
 function openDetail(card, reversed = false, topic = "umum") {
@@ -474,40 +431,6 @@ function renderGallery() {
     : "Tidak ada kartu yang cocok.";
 }
 
-// ---------- Riwayat ----------
-
-function renderHistory() {
-  const ul = $("#history");
-  const list = loadHistory();
-
-  if (list.length === 0) {
-    ul.innerHTML = `<li class="empty">Belum ada riwayat. Mulai membaca di tab Baca.</li>`;
-    return;
-  }
-
-  ul.innerHTML = list
-    .map((e) => {
-      const date = new Date(e.time).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
-      const spread = SPREADS[e.spread];
-      const names = e.cards
-        .map((c) => `${escapeHtml(cards[c.id].nameId)} (${c.reversed ? "terbalik" : "tegak"})`)
-        .join(", ");
-      const question = e.question ? `<p class="q-echo">Pertanyaan: ${escapeHtml(e.question)}</p>` : "";
-      const note = e.note ? `<p class="note">${escapeHtml(e.note)}</p>` : "";
-      return `
-        <li>
-          <div class="meta"><span>${escapeHtml(date)}</span><span>${escapeHtml(spread ? spread.title : "Bacaan")}${e.topic && e.topic !== "umum" ? " · " + escapeHtml(topicLabels[e.topic] || e.topic) : ""}</span></div>
-          ${question}
-          <div class="names">${names}</div>
-          ${note}
-          <div class="row-actions">
-            <button class="ghost small danger" data-action="delete" data-id="${e.id}">Hapus</button>
-          </div>
-        </li>`;
-    })
-    .join("");
-}
-
 // ---------- Tema ----------
 
 function isDarkNow() {
@@ -536,11 +459,10 @@ function switchTab(name) {
     t.setAttribute("aria-selected", String(on));
     t.tabIndex = on ? 0 : -1;
   });
-  ["read", "gallery", "history"].forEach((n) => {
+  ["read", "gallery"].forEach((n) => {
     $("#panel-" + n).hidden = n !== name;
   });
   if (name === "gallery") renderGallery();
-  if (name === "history") renderHistory();
 }
 
 // ---------- Inisialisasi ----------
@@ -594,15 +516,6 @@ function bindEvents() {
     $$(".topic-picker .chip").forEach((c) => c.classList.toggle("is-active", c === chip));
   });
 
-  // Catatan jurnal tersimpan otomatis
-  let noteTimer;
-  $("#journal-note").addEventListener("input", (e) => {
-    clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => {
-      if (current) updateEntry(current.entryId, { note: e.target.value });
-    }, 300);
-  });
-
   // Tab
   const tablist = $(".tabs");
   tablist.addEventListener("click", (e) => {
@@ -636,34 +549,6 @@ function bindEvents() {
     renderGallery();
   });
 
-  // Riwayat
-  $("#history").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-action='delete']");
-    if (!btn) return;
-    if (!confirm("Hapus bacaan ini?")) return;
-    deleteEntry(btn.dataset.id);
-    renderHistory();
-  });
-
-  $("#btn-export").addEventListener("click", () => {
-    const list = loadHistory();
-    if (list.length === 0) return toast("Riwayat masih kosong");
-    const blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "tarot-riwayat.json";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-
-  $("#btn-clear").addEventListener("click", () => {
-    if (loadHistory().length === 0) return;
-    if (!confirm("Hapus semua riwayat bacaan?")) return;
-    writeJSON(HISTORY_KEY, []);
-    renderHistory();
-    toast("Riwayat dihapus");
-  });
-
   // Modal
   const modal = $("#card-modal");
   modal.addEventListener("click", (e) => {
@@ -690,6 +575,7 @@ try {
   if (savedTheme) document.documentElement.dataset.theme = savedTheme;
 } catch { /* abaikan */ }
 
+removeOldHistory();
 makeStars();
 updateThemeIcon();
 bindEvents();
